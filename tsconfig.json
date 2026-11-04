@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@config/*": ["config/*"],
+      "@fixtures/*": ["fixtures/*"],
+      "@models/*": ["models/*"],
+      "@clients/*": ["clients/*"],
+      "@schemas/*": ["schemas/*"],
+      "@utils/*": ["utils/*"],
+      "@test-data/*": ["test-data/*"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["**/*.ts"]
+}
