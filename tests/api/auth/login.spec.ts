@@ -1,61 +1,31 @@
 import { test, expect } from '../../../fixtures/auth.fixture';
-import { LoginSuccessResponse, LoginErrorResponse } from '../../../models/response/auth.types';
+import { authErrorSchema, loginSuccessSchema } from '../../../schemas/auth.schema';
+import { buildValidCredentials } from '../../../test-data/factories/auth.factory';
+import { expectJsonSchema, expectStatus } from '../../../utils/helpers/responseAssertions';
+import invalidPayloads from '../../../test-data/static/invalid-payloads.json';
+import type { LoginRequestDto } from '../../../models/request/auth.dto';
 
 test.describe('Authentication API - /api/login', () => {
-  const validCredentials = {
-    email: 'eve.holt@reqres.in',
-    password: 'cityslicka',
-  };
+  test('@smoke POST /api/login - authenticates with valid credentials', async ({ authClient }) => {
+    const response = await authClient.login(buildValidCredentials());
 
-  test('POST /api/login - should authenticate successfully with valid credentials (200 OK)', async ({ authClient }) => {
-    const response = await authClient.login(validCredentials);
+    expectStatus(response, 200);
+    const body = await expectJsonSchema(response, loginSuccessSchema, 'login response');
 
-    expect(response.status()).toBe(200);
-    expect(response.ok()).toBeTruthy();
-
-    const body: LoginSuccessResponse = await response.json();
-    
-    // Assert response schema and integrity
-    expect(body).toHaveProperty('token');
-    expect(typeof body.token).toBe('string');
     expect(body.token.length).toBeGreaterThan(0);
   });
 
-  test('POST /api/login - should fail when password is missing (400 Bad Request)', async ({ authClient }) => {
-    const response = await authClient.login({
-      email: 'peter@klaven',
+  for (const testCase of invalidPayloads.login) {
+    test(`@negative POST /api/login - rejects ${testCase.case}`, async ({ authClient }) => {
+      const response = await authClient.login(testCase.payload as LoginRequestDto);
+
+      expectStatus(response, 400);
+      const body = await expectJsonSchema(response, authErrorSchema, 'login error response');
+      expect(body.error).toBe(testCase.expectedError);
     });
+  }
 
-    expect(response.status()).toBe(400);
-
-    const body: LoginErrorResponse = await response.json();
-    expect(body).toHaveProperty('error');
-    expect(body.error).toBe('Missing password');
-  });
-
-  test('POST /api/login - should fail when email is unregistered (400 Bad Request)', async ({ authClient }) => {
-    const response = await authClient.login({
-      email: 'unregistered.user@invalid-domain.com',
-      password: 'SomePassword123!',
-    });
-
-    expect(response.status()).toBe(400);
-
-    const body: LoginErrorResponse = await response.json();
-    expect(body).toHaveProperty('error');
-    expect(body.error).toBe('user not found');
-  });
-
-  test('POST /api/login - should fail with an empty payload (400 Bad Request)', async ({ authClient }) => {
-    const response = await authClient.login({ email: '' });
-
-    expect(response.status()).toBe(400);
-
-    const body: LoginErrorResponse = await response.json();
-    expect(body.error).toBeDefined();
-  });
-
-  test('Auth Fixture check - should auto-inject valid token via test fixture', async ({ authToken }) => {
+  test('@smoke auth fixture provisions a usable token automatically', async ({ authToken }) => {
     expect(authToken).toBeDefined();
     expect(typeof authToken).toBe('string');
     expect(authToken.length).toBeGreaterThan(0);

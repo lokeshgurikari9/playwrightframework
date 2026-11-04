@@ -1,7 +1,6 @@
 import { test as base, APIRequestContext } from '@playwright/test';
 import { AuthClient } from '../clients/AuthClient';
-import { LoginSuccessResponse } from '../models/response/auth.types';
-import { env } from '../config/env.config';
+import { env, buildAuthHeaders, buildDefaultHeaders } from '../config/env.config';
 
 type AuthFixtures = {
   authClient: AuthClient;
@@ -18,13 +17,12 @@ export const test = base.extend<AuthFixtures>({
   // Generates and provisions a valid bearer token dynamically
   authToken: async ({ request }, use) => {
     const authClient = new AuthClient(request);
-    const response = await authClient.login({
-      email: process.env.TEST_USER_EMAIL || 'eve.holt@reqres.in',
-      password: process.env.TEST_USER_PASSWORD || 'cityslicka',
+    const { token } = await authClient.loginAndGetToken({
+      email: env.TEST_USER_EMAIL,
+      password: env.TEST_USER_PASSWORD,
     });
 
-    const data: LoginSuccessResponse = await response.json();
-    await use(data.token);
+    await use(token);
   },
 
   // Pre-configured API context bearing the generated token in headers
@@ -32,13 +30,16 @@ export const test = base.extend<AuthFixtures>({
     const context = await playwright.request.newContext({
       baseURL: env.BASE_URL,
       extraHTTPHeaders: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
+        ...buildDefaultHeaders(),
+        ...buildAuthHeaders(authToken),
       },
+      timeout: env.REQUEST_TIMEOUT_MS,
     });
+
     await use(context);
     await context.dispose();
   },
 });
 
 export { expect } from '@playwright/test';
+export type { AuthFixtures };

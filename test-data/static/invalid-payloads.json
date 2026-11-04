@@ -1,0 +1,36 @@
+{
+  "login": [
+    {
+      "case": "missing password",
+      "payload": { "email": "eve.holt@reqres.in" },
+      "expectedError": "Missing password"
+    },
+    {
+      "case": "unknown user",
+      "payload": { "email": "unregistered.user@invalid-domain.com", "password": "SomePassword123!" },
+      "expectedError": "user not found"
+    },
+    {
+      "case": "empty payload",
+      "payload": {},
+      "expectedError": "Missing email or username"
+    }
+  ],
+  "register": [
+    {
+      "case": "missing password",
+      "payload": { "email": "eve.holt@reqres.in" },
+      "expectedError": "Missing password"
+    },
+    {
+      "case": "missing email",
+      "payload": { "password": "pistol" },
+      "expectedError": "Missing email or username"
+    },
+    {
+      "case": "undefined user",
+      "payload": { "email": "not-a-registered-user@example.com", "password": "pistol" },
+      "expectedError": "Note: Only defined users succeed registration"
+    }
+  ]
+}

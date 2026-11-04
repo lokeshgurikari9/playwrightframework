@@ -1,26 +1,56 @@
 name: API Automation Tests
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      API_KEY: ${{ secrets.REQRES_API_KEY }}
+      TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.REQRES_TEST_PASSWORD }}
+      LOG_LEVEL: warn
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
       - name: Install dependencies
         run: npm ci
-      - name: Run Playwright API tests
-        run: npx playwright test
-      - name: Upload test results
+
+      - name: Type-check
+        run: npm run typecheck
+
+      # Use a real API key when configured; otherwise run the deterministic
+      # local mock so CI is never blocked by the public demo quota.
+      - name: Run Playwright API tests (live)
+        if: env.API_KEY != ''
+        run: npm test
+
+      - name: Run Playwright API tests (mock)
+        if: env.API_KEY == ''
+        run: npm run test:mock
+
+      - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 14
